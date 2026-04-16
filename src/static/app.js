@@ -18,18 +18,46 @@ document.addEventListener("DOMContentLoaded", () => {
         const activityCard = document.createElement("div");
         activityCard.className = "activity-card";
 
-        const spotsLeft = details.max_participants - details.participants.length;
+        const h4 = document.createElement("h4");
+        h4.textContent = name;
+        activityCard.appendChild(h4);
 
-        activityCard.innerHTML = `
-          <h4>${name}</h4>
-          <p>${details.description}</p>
-          <p><strong>Schedule:</strong> ${details.schedule}</p>
-          <p><strong>Availability:</strong> ${spotsLeft} spots left</p>
-          <p><strong>Participants:</strong></p>
-          <ul class="participants-list">
-            ${details.participants.map(email => `<li>${email}</li>`).join('')}
-          </ul>
-        `;
+        const descP = document.createElement("p");
+        descP.textContent = details.description;
+        activityCard.appendChild(descP);
+
+        const schedP = document.createElement("p");
+        schedP.innerHTML = `<strong>Schedule:</strong> ${details.schedule}`;
+        activityCard.appendChild(schedP);
+
+        const spotsLeft = details.max_participants - details.participants.length;
+        const availP = document.createElement("p");
+        availP.innerHTML = `<strong>Availability:</strong> ${spotsLeft} spots left`;
+        activityCard.appendChild(availP);
+
+        const partP = document.createElement("p");
+        partP.innerHTML = `<strong>Participants:</strong>`;
+        activityCard.appendChild(partP);
+
+        const ul = document.createElement("ul");
+        ul.className = "participants-list";
+
+        details.participants.forEach(email => {
+          const li = document.createElement("li");
+          const span = document.createElement("span");
+          span.textContent = email;
+          li.appendChild(span);
+
+          const deleteBtn = document.createElement("span");
+          deleteBtn.className = "delete-icon";
+          deleteBtn.innerHTML = "&times;";
+          deleteBtn.addEventListener("click", () => unregister(name, email));
+          li.appendChild(deleteBtn);
+
+          ul.appendChild(li);
+        });
+
+        activityCard.appendChild(ul);
 
         activitiesList.appendChild(activityCard);
 
@@ -42,6 +70,36 @@ document.addEventListener("DOMContentLoaded", () => {
     } catch (error) {
       activitiesList.innerHTML = "<p>Failed to load activities. Please try again later.</p>";
       console.error("Error fetching activities:", error);
+    }
+  }
+
+  // Function to unregister a participant
+  async function unregister(activity, email) {
+    try {
+      const response = await fetch(
+        `/activities/${encodeURIComponent(activity)}/signup?email=${encodeURIComponent(email)}`,
+        {
+          method: "DELETE",
+        }
+      );
+
+      if (response.ok) {
+        // Refresh the activities list
+        fetchActivities();
+      } else {
+        const result = await response.json();
+        messageDiv.textContent = result.detail || "Failed to unregister participant";
+        messageDiv.className = "error";
+        messageDiv.classList.remove("hidden");
+        setTimeout(() => {
+          messageDiv.classList.add("hidden");
+        }, 5000);
+      }
+    } catch (error) {
+      messageDiv.textContent = "Failed to unregister. Please try again.";
+      messageDiv.className = "error";
+      messageDiv.classList.remove("hidden");
+      console.error("Error unregistering:", error);
     }
   }
 
